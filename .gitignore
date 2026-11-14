@@ -1,0 +1,23 @@
+# Ignore a local CLAUDE.md file.
+CLAUDE.md
+
+# Ignore local environment files.
+.env
+.env.*
+!.env.example
+
+# Ignore Go build output.
+/bin/
+/dist/
+*.exe
+*.test
+coverage.out
+
+# Ignore Terragrunt and Terraform local artifacts.
+.terraform/
+.terragrunt-cache/
+.terragrunt-stack/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfplan

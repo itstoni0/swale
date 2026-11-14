@@ -1,0 +1,116 @@
+name: ci
+
+# This workflow runs on a pull request.
+# This workflow runs on a push to main.
+# A feature-branch push does not start a second run.
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: go build ./...
+
+  vet:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # Exit 0 when the module has no packages.
+      # Any other non-zero result fails the job.
+      - name: Vet
+        shell: bash
+        run: |
+          set +e
+          output="$(go vet ./... 2>&1)"
+          code=$?
+          set -e
+          if [ -n "$output" ]; then
+            printf '%s\n' "$output"
+          fi
+          if [ "$code" -eq 0 ]; then
+            exit 0
+          fi
+          empty=$'go: warning: "./..." matched no packages\nno packages to vet'
+          if [ "$output" = "$empty" ]; then
+            echo "The vet check skips because the module has no packages."
+            exit 0
+          fi
+          exit "$code"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # Exit 0 when the module has no packages.
+      # Any other non-zero result fails the job.
+      - name: Test
+        shell: bash
+        run: |
+          set +e
+          output="$(go test ./... 2>&1)"
+          code=$?
+          set -e
+          if [ -n "$output" ]; then
+            printf '%s\n' "$output"
+          fi
+          if [ "$code" -eq 0 ]; then
+            exit 0
+          fi
+          empty=$'go: warning: "./..." matched no packages\nno packages to test'
+          if [ "$output" = "$empty" ]; then
+            echo "The test check skips because the module has no packages."
+            exit 0
+          fi
+          exit "$code"
+
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Check gofmt
+        shell: bash
+        run: |
+          unformatted="$(gofmt -l .)" || exit 1
+          if [ -n "$unformatted" ]; then
+            echo "gofmt found unformatted files:"
+            printf '%s\n' "$unformatted"
+            exit 1
+          fi
