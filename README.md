@@ -1,4 +1,3 @@
 # Swale
 
-Swale is a Go module.
-Swale generates Terragrunt units and stacks that reference modules from a catalog.
+Swale writes your Terragrunt units and stacks for you, using modules from whatever catalog you already use.
