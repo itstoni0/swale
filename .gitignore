@@ -1,3 +1,6 @@
+# Ignore a local CLAUDE.md file.
+CLAUDE.md
+
 # Ignore local environment files.
 .env
 .env.*

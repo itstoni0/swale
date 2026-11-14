@@ -14,82 +14,98 @@ func TestHelp(t *testing.T) {
 	}{
 		{
 			name: "root",
+			args: nil,
+			want: []string{"Usage:", "init", "scaffold"},
+		},
+		{
+			name: "root-help",
 			args: []string{"--help"},
+			want: []string{"Usage:", "init", "scaffold"},
+		},
+		{
+			name: "root-short-help",
+			args: []string{"-h"},
 			want: []string{"Usage:", "init", "scaffold"},
 		},
 		{
 			name: "init",
 			args: []string{"init", "--help"},
-			want: []string{"Usage:", "init"},
+			want: []string{"Usage:", "swale init"},
+		},
+		{
+			name: "init-short-help",
+			args: []string{"init", "-h"},
+			want: []string{"Usage:", "swale init"},
 		},
 		{
 			name: "scaffold",
 			args: []string{"scaffold", "--help"},
-			want: []string{"Usage:", "scaffold"},
+			want: []string{"Usage:", "swale scaffold"},
+		},
+		{
+			name: "scaffold-short-help",
+			args: []string{"scaffold", "-h"},
+			want: []string{"Usage:", "swale scaffold"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			code, output := run(t, tt.args...)
+			code, stdout, stderr := run(t, tt.args...)
 			if code != 0 {
-				t.Fatalf("exit code = %d, want 0, output = %s", code, output)
+				t.Fatalf("exit code = %d, want 0, stderr = %s", code, stderr)
+			}
+			if stderr != "" {
+				t.Fatalf("stderr = %q, want empty", stderr)
 			}
 			for _, phrase := range tt.want {
-				if !strings.Contains(output, phrase) {
-					t.Fatalf("output = %q, want substring %q", output, phrase)
+				if !strings.Contains(stdout, phrase) {
+					t.Fatalf("stdout = %q, want substring %q", stdout, phrase)
 				}
 			}
-			if strings.Contains(output, "not implemented yet") {
-				t.Fatalf("help output = %q, want no stub message", output)
+			if strings.Contains(stdout, "not implemented yet") {
+				t.Fatalf("stdout = %q, want no stub message", stdout)
 			}
 		})
-	}
-}
-
-func TestRootWithoutArgs(t *testing.T) {
-	code, output := run(t)
-	if code != 0 {
-		t.Fatalf("exit code = %d, want 0, output = %s", code, output)
-	}
-	if !strings.Contains(output, "Usage:") {
-		t.Fatalf("output = %q, want usage", output)
-	}
-	if strings.Contains(output, "not implemented yet") {
-		t.Fatalf("output = %q, want no stub message", output)
-	}
-}
-
-func TestUnknownCommand(t *testing.T) {
-	code, output := run(t, "nope")
-	if code == 0 {
-		t.Fatalf("exit code = 0, want non-zero, output = %s", output)
-	}
-	if !strings.Contains(output, "unknown command") {
-		t.Fatalf("output = %q, want an unknown-command error", output)
 	}
 }
 
 func TestStubs(t *testing.T) {
 	for _, name := range []string{"init", "scaffold"} {
 		t.Run(name, func(t *testing.T) {
-			code, output := run(t, name)
+			code, stdout, stderr := run(t, name)
 			if code == 0 {
-				t.Fatalf("exit code = 0, want non-zero, output = %s", output)
+				t.Fatalf("exit code = 0, want non-zero, stderr = %s", stderr)
 			}
-			if !strings.Contains(output, "not implemented yet") {
-				t.Fatalf("output = %q, want the stub message", output)
+			if stdout != "" {
+				t.Fatalf("stdout = %q, want empty", stdout)
 			}
-			if !strings.Contains(output, "Usage:") {
-				t.Fatalf("output = %q, want usage", output)
+			if !strings.Contains(stderr, "Usage:") {
+				t.Fatalf("stderr = %q, want usage", stderr)
+			}
+			if !strings.Contains(stderr, "not implemented yet") {
+				t.Fatalf("stderr = %q, want the stub message", stderr)
 			}
 		})
 	}
 }
 
-func run(t *testing.T, args ...string) (int, string) {
+func TestUnknownCommand(t *testing.T) {
+	code, stdout, stderr := run(t, "nope")
+	if code == 0 {
+		t.Fatalf("exit code = 0, want non-zero, stderr = %s", stderr)
+	}
+	if stdout != "" {
+		t.Fatalf("stdout = %q, want empty", stdout)
+	}
+	if !strings.Contains(stderr, "unknown command") {
+		t.Fatalf("stderr = %q, want an unknown-command error", stderr)
+	}
+}
+
+func run(t *testing.T, args ...string) (int, string, string) {
 	t.Helper()
 	var stdout, stderr bytes.Buffer
 	code := Execute(args, &stdout, &stderr)
-	return code, stdout.String() + stderr.String()
+	return code, stdout.String(), stderr.String()
 }

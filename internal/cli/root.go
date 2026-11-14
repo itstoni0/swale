@@ -1,55 +1,86 @@
-// Package cli builds the Swale command tree.
+// Package cli runs the Swale commands.
 package cli
 
 import (
-	"errors"
+	"flag"
+	"fmt"
 	"io"
-
-	"github.com/spf13/cobra"
 )
 
-// errNotImplemented is the error for a stub command.
-var errNotImplemented = errors.New("not implemented yet")
+const rootUsage = `Swale generates Terragrunt units and stacks that reference modules from a catalog.
+
+Usage:
+  swale [command]
+
+Commands:
+  init      Prepare a repository for Swale.
+  scaffold  Generate Terragrunt units and stacks.
+`
 
 // Execute runs one Swale command and returns the exit code.
 func Execute(args []string, stdout, stderr io.Writer) int {
-	cmd := newRoot()
-	cmd.SetOut(stdout)
-	cmd.SetErr(stderr)
-	cmd.SetArgs(args)
-	if err := cmd.Execute(); err != nil {
+	if len(args) > 0 && !isFlag(args[0]) {
+		return runCommand(args[0], args[1:], stdout, stderr)
+	}
+	help, rest, err := parseArgs("swale", args, stderr)
+	if err != nil {
 		return 1
 	}
-	return 0
-}
-
-func newRoot() *cobra.Command {
-	root := &cobra.Command{
-		Use:   "swale",
-		Short: "Generate Terragrunt units and stacks",
-		Long:  "Swale generates Terragrunt units and stacks that reference modules from a catalog.",
+	if help || len(rest) == 0 {
+		fmt.Fprint(stdout, rootUsage)
+		return 0
 	}
-	root.CompletionOptions.DisableDefaultCmd = true
-	root.AddCommand(newInit(), newScaffold())
-	return root
+	fmt.Fprintf(stderr, "unknown command %q\n", rest[0])
+	return 1
 }
 
-func newInit() *cobra.Command {
-	return &cobra.Command{
-		Use:   "init",
-		Short: "Prepare a repository for Swale",
-		RunE:  notImplemented,
+func runCommand(name string, args []string, stdout, stderr io.Writer) int {
+	switch name {
+	case "init", "scaffold":
+	default:
+		fmt.Fprintf(stderr, "unknown command %q\n", name)
+		return 1
+	}
+	help, rest, err := parseArgs(name, args, stderr)
+	if err != nil {
+		return 1
+	}
+	if help {
+		fmt.Fprint(stdout, commandUsage(name))
+		return 0
+	}
+	if len(rest) > 0 {
+		fmt.Fprintf(stderr, "unexpected argument %q\n", rest[0])
+		return 1
+	}
+	fmt.Fprint(stderr, commandUsage(name))
+	fmt.Fprintln(stderr, "not implemented yet")
+	return 1
+}
+
+func parseArgs(name string, args []string, stderr io.Writer) (bool, []string, error) {
+	fs := flag.NewFlagSet(name, flag.ContinueOnError)
+	fs.SetOutput(stderr)
+	short := fs.Bool("h", false, "Show usage")
+	long := fs.Bool("help", false, "Show usage")
+	fs.Usage = func() {}
+	if err := fs.Parse(args); err != nil {
+		return false, nil, err
+	}
+	return *short || *long, fs.Args(), nil
+}
+
+func commandUsage(name string) string {
+	switch name {
+	case "init":
+		return "Prepare a repository for Swale.\n\nUsage:\n  swale init\n"
+	case "scaffold":
+		return "Generate Terragrunt units and stacks.\n\nUsage:\n  swale scaffold\n"
+	default:
+		return ""
 	}
 }
 
-func newScaffold() *cobra.Command {
-	return &cobra.Command{
-		Use:   "scaffold",
-		Short: "Generate Terragrunt units and stacks",
-		RunE:  notImplemented,
-	}
-}
-
-func notImplemented(*cobra.Command, []string) error {
-	return errNotImplemented
+func isFlag(arg string) bool {
+	return len(arg) > 0 && arg[0] == '-'
 }
