@@ -9,11 +9,10 @@ ca_file="${HOME}/.aws/emulator/9297/ca.pem"
 wait_seconds="${EMULATOR_WAIT_SECONDS:-60}"
 
 # The emulator writes ca.pem when it starts and removes the file when it stops.
-for ((i = 0; ; i++)); do
-  if curl -fsS --cacert "$ca_file" -o /dev/null "$endpoint/__admin/health" 2>/dev/null; then
-    break
-  fi
-  if ((i >= wait_seconds)); then
+# Limit each request to 5 seconds, so that a hung request cannot block the loop.
+deadline=$((SECONDS + wait_seconds))
+until curl -fsS --max-time 5 --cacert "$ca_file" -o /dev/null "$endpoint/__admin/health" 2>/dev/null; do
+  if ((SECONDS >= deadline)); then
     echo "The emulator did not answer at $endpoint in $wait_seconds seconds." >&2
     exit 1
   fi
