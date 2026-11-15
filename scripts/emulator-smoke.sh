@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Run a read-only smoke check against a running AWS Emulator.
+# Run a read-only smoke check against an AWS Emulator that runs.
 # Start the emulator with "--telemetry off --auth off" before you run this script.
 # The script uses dummy credentials, so the emulator must not require SigV4 keys.
 set -euo pipefail

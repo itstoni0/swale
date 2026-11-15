@@ -126,7 +126,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v7
 
-      # The URL format comes from the AWS docs, but this repository did not verify it.
+      # Nobody verified this URL format against the AWS docs. This CI run is the first check.
       - name: Install AWS Emulator
         shell: bash
         run: |
@@ -180,7 +180,7 @@ jobs:
             exit 0
           fi
           if ! kill -TERM "$EMULATOR_PID" 2>/dev/null; then
-            echo "The emulator process $EMULATOR_PID is not running."
+            echo "The emulator process $EMULATOR_PID does not exist."
             exit 0
           fi
           for ((i = 0; i < 30; i++)); do

@@ -48,9 +48,12 @@ Fill each score in this table from the pinned release notes before the merge.
 The emulator does not evaluate IAM policies or KMS policies like AWS does.
 Swale can read and grade IAM documents in CI.
 CI cannot prove that a policy works.
-The Swale MVP spec states this limit.
+The [Swale MVP spec][mvp-spec] states this limit.
 
 ## Sources
 
 - [AWS Emulator README](https://github.com/aws/aws-emulator)
 - [AWS Emulator v1.0.385 release](https://github.com/aws/aws-emulator/releases/tag/v1.0.385)
+- [Swale MVP spec (Linear)](https://linear.app/swale/document/swale-mvp-spec-2b3eee09e97d)
+
+[mvp-spec]: https://linear.app/swale/document/swale-mvp-spec-2b3eee09e97d
