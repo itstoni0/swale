@@ -298,6 +298,8 @@ func TestDecodeRefusesMalformedJSON(t *testing.T) {
 		"truncated":       `{"resources":[{"type":"aws_vpc"`,
 		"wrong top level": `[]`,
 		"wrong field":     `{"resources":{"type":"aws_vpc"}}`,
+		"second value":    `{"resources":[]} {"resources":[]}`,
+		"trailing text":   `{"resources":[]} x`,
 	}
 	for name, input := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -332,6 +334,17 @@ func TestEmptyInventory(t *testing.T) {
 
 func TestDecodeEmptyResourceList(t *testing.T) {
 	got, err := inventory.Decode(strings.NewReader(`{"resources":[]}`))
+	if err != nil {
+		t.Fatalf("Decode: unexpected error: %v", err)
+	}
+	if len(got.Resources) != 0 {
+		t.Fatalf("Decode: got %d resources, want 0", len(got.Resources))
+	}
+}
+
+// Decode accepts white space after the JSON value.
+func TestDecodeAcceptsTrailingWhitespace(t *testing.T) {
+	got, err := inventory.Decode(strings.NewReader("{\"resources\":[]}\n  \n"))
 	if err != nil {
 		t.Fatalf("Decode: unexpected error: %v", err)
 	}
