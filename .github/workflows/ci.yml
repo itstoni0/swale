@@ -145,7 +145,8 @@ jobs:
         run: |
           output="$(aws-emulator -v 2>&1)"
           printf '%s\n' "$output"
-          if ! grep -qF -- "$EMULATOR_VERSION" <<<"$output"; then
+          # Match the whole version, so that 1.0.385 does not match 1.0.3851 or 11.0.385.
+          if ! grep -qE -- "(^|[^0-9.])${EMULATOR_VERSION//./\\.}([^0-9.]|\$)" <<<"$output"; then
             echo "The installed AWS Emulator is not version ${EMULATOR_VERSION}." >&2
             echo "Make sure that the download URL gives the pinned version." >&2
             exit 1
