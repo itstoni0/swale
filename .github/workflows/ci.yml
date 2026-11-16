@@ -114,3 +114,88 @@ jobs:
           echo "The coverage check passed."
           echo "The measured value is ${total}."
           echo "The threshold is ${threshold}."
+
+  # Run the smoke check against a local AWS Emulator.
+  # This job uses dummy credentials only. It reads no secret.
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EMULATOR_VERSION: "1.0.385"
+      # The v1.0.385 release has no checksum file.
+      # This value is the SHA-256 checksum of the package file.
+      EMULATOR_DEB_SHA256: "5344b39e76089633f3cc2d8795e5554ff0a89f4c26bc316fa748b3909423d3f5"
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Install AWS Emulator
+        shell: bash
+        run: |
+          url="https://downloads.aws.com/aws-emulator/packages/aws-emulator/LTS/aws-emulator_${EMULATOR_VERSION}-1_amd64.deb"
+          deb="$RUNNER_TEMP/aws-emulator.deb"
+          if ! curl -fsSL -o "$deb" "$url"; then
+            echo "The download of AWS Emulator ${EMULATOR_VERSION} failed from $url." >&2
+            echo "Make sure that the URL format and the version are correct." >&2
+            exit 1
+          fi
+          if ! printf '%s  %s\n' "$EMULATOR_DEB_SHA256" "$deb" | sha256sum -c -; then
+            echo "The SHA-256 checksum of AWS Emulator ${EMULATOR_VERSION} does not match." >&2
+            exit 1
+          fi
+          sudo apt-get install -y "$deb"
+
+      # Fail when the installed version is not the pinned version.
+      - name: Check the AWS Emulator version
+        shell: bash
+        run: |
+          output="$(aws-emulator -v 2>&1)"
+          printf '%s\n' "$output"
+          # Match the whole version, so that 1.0.385 does not match 1.0.3851 or 11.0.385.
+          if ! grep -qE -- "(^|[^0-9.])${EMULATOR_VERSION//./\\.}([^0-9.]|\$)" <<<"$output"; then
+            echo "The installed AWS Emulator is not version ${EMULATOR_VERSION}." >&2
+            echo "Make sure that the download URL gives the pinned version." >&2
+            exit 1
+          fi
+
+      # Start the emulator as the runner user, not with sudo.
+      # The emulator writes its CA file under $HOME, and the smoke check reads it there.
+      - name: Start AWS Emulator
+        shell: bash
+        run: |
+          nohup aws-emulator --telemetry off --auth off >"$RUNNER_TEMP/emulator.log" 2>&1 &
+          echo "EMULATOR_PID=$!" >>"$GITHUB_ENV"
+
+      - name: Run the smoke check
+        env:
+          EMULATOR_WAIT_SECONDS: "180"
+        run: scripts/emulator-smoke.sh
+
+      # Show the log and stop the emulator with SIGTERM.
+      # A clean stop removes the CA file.
+      - name: Stop AWS Emulator
+        if: always()
+        shell: bash
+        run: |
+          log="$RUNNER_TEMP/emulator.log"
+          if [ -f "$log" ]; then
+            echo "The AWS Emulator log follows."
+            cat "$log"
+          fi
+          if [ -z "${EMULATOR_PID:-}" ]; then
+            echo "The emulator did not start, so there is no process to stop."
+            exit 0
+          fi
+          if ! kill -TERM "$EMULATOR_PID" 2>/dev/null; then
+            echo "The emulator process $EMULATOR_PID does not exist."
+            exit 0
+          fi
+          for ((i = 0; i < 30; i++)); do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              echo "The emulator stopped."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "The emulator did not stop in 30 seconds." >&2
+          exit 1
