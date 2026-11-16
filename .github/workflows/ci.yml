@@ -39,27 +39,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # Exit 0 when the module has no packages.
-      # Any other non-zero result fails the job.
       - name: Vet
-        shell: bash
-        run: |
-          set +e
-          output="$(go vet ./... 2>&1)"
-          code=$?
-          set -e
-          if [ -n "$output" ]; then
-            printf '%s\n' "$output"
-          fi
-          if [ "$code" -eq 0 ]; then
-            exit 0
-          fi
-          empty=$'go: warning: "./..." matched no packages\nno packages to vet'
-          if [ "$output" = "$empty" ]; then
-            echo "The vet check skips because the module has no packages."
-            exit 0
-          fi
-          exit "$code"
+        run: go vet ./...
 
   test:
     runs-on: ubuntu-latest
@@ -72,27 +53,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      # Exit 0 when the module has no packages.
-      # Any other non-zero result fails the job.
       - name: Test
-        shell: bash
-        run: |
-          set +e
-          output="$(go test ./... 2>&1)"
-          code=$?
-          set -e
-          if [ -n "$output" ]; then
-            printf '%s\n' "$output"
-          fi
-          if [ "$code" -eq 0 ]; then
-            exit 0
-          fi
-          empty=$'go: warning: "./..." matched no packages\nno packages to test'
-          if [ "$output" = "$empty" ]; then
-            echo "The test check skips because the module has no packages."
-            exit 0
-          fi
-          exit "$code"
+        run: go test ./...
 
   format:
     runs-on: ubuntu-latest
@@ -114,3 +76,41 @@ jobs:
             printf '%s\n' "$unformatted"
             exit 1
           fi
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      - name: Check coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          go test -race -covermode=atomic -coverprofile=coverage.out ./...
+          report="$(go tool cover -func=coverage.out)"
+          printf '%s\n' "$report"
+          total="$(printf '%s\n' "$report" | awk '/^total:/ { print $NF }')"
+          threshold="100.0%"
+          if [ -z "$total" ]; then
+            echo "The coverage report has no total line."
+            echo "The measured value is missing."
+            echo "The threshold is ${threshold}."
+            exit 1
+          fi
+          total_num="${total%\%}"
+          threshold_num="${threshold%\%}"
+          if awk -v measured="$total_num" -v limit="$threshold_num" 'BEGIN { exit !((measured + 0) < (limit + 0)) }'; then
+            echo "The coverage check failed."
+            echo "The measured value is ${total}."
+            echo "The threshold is ${threshold}."
+            exit 1
+          fi
+          echo "The coverage check passed."
+          echo "The measured value is ${total}."
+          echo "The threshold is ${threshold}."
