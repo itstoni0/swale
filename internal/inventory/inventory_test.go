@@ -342,6 +342,30 @@ func TestDecodeEmptyResourceList(t *testing.T) {
 	}
 }
 
+// failWriter is a writer. Write always returns an error.
+type failWriter struct {
+	err error
+}
+
+func (w failWriter) Write([]byte) (int, error) {
+	return 0, w.err
+}
+
+// Encode returns a wrapped error when the writer returns an error.
+func TestEncodeReturnsWriterError(t *testing.T) {
+	writeErr := errors.New("write failed")
+	err := inventory.Encode(failWriter{err: writeErr}, sampleInventory())
+	if err == nil {
+		t.Fatal("Encode: got no error, want an error")
+	}
+	if !errors.Is(err, writeErr) {
+		t.Fatalf("Encode: error %q does not wrap %v", err, writeErr)
+	}
+	if !strings.HasPrefix(err.Error(), "encode inventory:") {
+		t.Fatalf("Encode: error %q does not start with %q", err, "encode inventory:")
+	}
+}
+
 // Decode accepts white space after the JSON value.
 func TestDecodeAcceptsTrailingWhitespace(t *testing.T) {
 	got, err := inventory.Decode(strings.NewReader("{\"resources\":[]}\n  \n"))
