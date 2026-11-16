@@ -122,11 +122,13 @@ jobs:
     timeout-minutes: 15
     env:
       EMULATOR_VERSION: "1.0.385"
+      # The v1.0.385 release has no checksum file.
+      # This value is the SHA-256 checksum of the package file.
+      EMULATOR_DEB_SHA256: "5344b39e76089633f3cc2d8795e5554ff0a89f4c26bc316fa748b3909423d3f5"
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
 
-      # Nobody verified this URL format against the AWS docs. This CI run is the first check.
       - name: Install AWS Emulator
         shell: bash
         run: |
@@ -135,6 +137,10 @@ jobs:
           if ! curl -fsSL -o "$deb" "$url"; then
             echo "The download of AWS Emulator ${EMULATOR_VERSION} failed from $url." >&2
             echo "Make sure that the URL format and the version are correct." >&2
+            exit 1
+          fi
+          if ! printf '%s  %s\n' "$EMULATOR_DEB_SHA256" "$deb" | sha256sum -c -; then
+            echo "The SHA-256 checksum of AWS Emulator ${EMULATOR_VERSION} does not match." >&2
             exit 1
           fi
           sudo apt-get install -y "$deb"
