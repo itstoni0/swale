@@ -1,0 +1,14 @@
+[
+  {
+    "type": "stack",
+    "path": "live"
+  },
+  {
+    "type": "unit",
+    "path": "live/vpc"
+  },
+  {
+    "type": "unit",
+    "path": "live/subnet"
+  }
+]
