@@ -27,6 +27,8 @@ The emulator serves HTTPS with a self-signed certificate.
 The script `scripts/emulator-smoke.sh` runs the smoke check.
 The smoke check runs `aws sts get-caller-identity` and `aws ec2 describe-vpcs`.
 Both calls are read-only.
+The job also runs `go test -tags emulator ./internal/awsread/`.
+That test calls `sts:GetCallerIdentity` through the AWS SDK for Go v2.
 The job uses dummy credentials only, and it reads no secret.
 
 ## Fidelity scores
