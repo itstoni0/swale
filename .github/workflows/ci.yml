@@ -171,6 +171,29 @@ jobs:
           EMULATOR_WAIT_SECONDS: "180"
         run: scripts/emulator-smoke.sh
 
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+
+      # The unit test job does not pass the emulator build tag.
+      # This step runs the read-only access layer against the emulator.
+      - name: Run the emulator test
+        shell: bash
+        run: |
+          set -euo pipefail
+          export AWS_ENDPOINT_URL="https://127.0.0.1:9297"
+          export AWS_CA_BUNDLE="${HOME}/.aws/emulator/9297/ca.pem"
+          unset AWS_PROFILE AWS_SESSION_TOKEN
+          export AWS_ACCESS_KEY_ID=test
+          export AWS_SECRET_ACCESS_KEY=test
+          export AWS_REGION=us-east-1
+          export AWS_DEFAULT_REGION=us-east-1
+          export AWS_CONFIG_FILE=/dev/null
+          export AWS_SHARED_CREDENTIALS_FILE=/dev/null
+          export AWS_EC2_METADATA_DISABLED=true
+          go test -tags emulator -count=1 -timeout 180s ./internal/awsread/
+
       # Show the log and stop the emulator with SIGTERM.
       # A clean stop removes the CA file.
       - name: Stop AWS Emulator
