@@ -1,0 +1,21 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.10.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_security_group.sample",
+          "mode": "managed",
+          "type": "aws_security_group",
+          "name": "sample",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "id": "sg-sample",
+            "arn": "arn:aws:ec2:eu-west-1:example:security-group/sg-sample"
+          }
+        }
+      ]
+    }
+  }
+}

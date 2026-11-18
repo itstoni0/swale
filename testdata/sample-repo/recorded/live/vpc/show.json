@@ -1,0 +1,50 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.10.0",
+  "values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_vpc.main",
+          "mode": "managed",
+          "type": "aws_vpc",
+          "name": "main",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "id": "vpc-sample",
+            "arn": "arn:aws:ec2:eu-west-1:example:vpc/vpc-sample"
+          }
+        },
+        {
+          "address": "data.aws_caller_identity.current",
+          "mode": "data",
+          "type": "aws_caller_identity",
+          "name": "current",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "id": "data-caller-example",
+            "arn": "arn:aws:iam::example:root"
+          }
+        }
+      ],
+      "child_modules": [
+        {
+          "address": "module.subnets",
+          "resources": [
+            {
+              "address": "module.subnets.aws_subnet.a",
+              "mode": "managed",
+              "type": "aws_subnet",
+              "name": "a",
+              "provider_name": "registry.terraform.io/hashicorp/aws",
+              "values": {
+                "id": "subnet-sample",
+                "arn": "arn:aws:ec2:eu-west-1:example:subnet/subnet-sample"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}
